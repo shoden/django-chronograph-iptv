@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from django.db import models
 from django.utils.timesince import timeuntil
 from django.utils.translation import ungettext, ugettext, ugettext_lazy as _
@@ -20,28 +21,30 @@ class JobManager(models.Manager):
         return self.filter(next_run__lte=datetime.now(), disabled=False, is_running=False)
 
 # A lot of rrule stuff is from django-schedule
-freqs = (   ("YEARLY", _("Yearly")),
-            ("MONTHLY", _("Monthly")),
-            ("WEEKLY", _("Weekly")),
-            ("DAILY", _("Daily")),
-            ("HOURLY", _("Hourly")),
-            ("MINUTELY", _("Minutely")),
-            ("SECONDLY", _("Secondly")))
+freqs = (   ("YEARLY", _(u"Nunca")),
+            ("MONTHLY", _(u"Cada mes")),
+            ("WEEKLY", _(u"Cada semana")),
+            ("DAILY", _(u"Cada día")),
+            ("HOURLY", _(u"Cada hora")),
+            ("MINUTELY", _(u"Cada minuto")),
+            ("SECONDLY", _(u"Cada segundo")))
 
 class Job(models.Model):
     """
     A recurring ``django-admin`` command to be run.
     """
     name = models.CharField(_("name"), max_length=200)
-    frequency = models.CharField(_("frequency"), choices=freqs, max_length=10)
+    frequency = models.CharField(_("Frecuencia"), choices=freqs, max_length=10)
     params = models.TextField(_("params"), null=True, blank=True,
         help_text=_('Comma-separated list of <a href="http://labix.org/python-dateutil" target="_blank">rrule parameters</a>. e.g: interval:15'))
-    command = models.CharField(_("command"), max_length=200,
+    command = models.CharField(_("Comando"), max_length=200,
         help_text=_("A valid django-admin command to run."), blank=True)
     args = models.CharField(_("args"), max_length=200, blank=True,
         help_text=_("Space separated list; e.g: arg1 option1=True"))
-    disabled = models.BooleanField(default=False, help_text=_('If checked this job will never run.'))
-    next_run = models.DateTimeField(_("next run"), blank=True, null=True, help_text=_("If you don't set this it will be determined automatically"))
+    disabled = models.BooleanField(_(u'Deshabilitado'), default=False)
+    next_run = models.DateTimeField(_(u"Próxima ejecución"), blank=True, null=True,
+                                    help_text=_(u"Si deja este campo vacío se"
+                                                u" establecerá automáticamente"))
     last_run = models.DateTimeField(_("last run"), editable=False, blank=True, null=True)
     is_running = models.BooleanField(default=False, editable=False)
     
@@ -49,6 +52,8 @@ class Job(models.Model):
     
     class Meta:
         ordering = ('disabled', 'next_run',)
+        verbose_name = _(u'Tarea')
+        verbose_name_plural = _(u'Tareas')
     
     def __unicode__(self):
         if self.disabled:
@@ -120,6 +125,8 @@ class Job(models.Model):
         """
         args = []
         options = {}
+        # El primer argumento es automáticamente el ID de la propia instancia
+        args.append(self.id)
         for arg in self.args.split():
             if arg.find('=') > -1:
                 key, value = arg.split('=')
@@ -196,6 +203,8 @@ class Log(models.Model):
         
     class Meta:
         ordering = ('-run_date',)
+        verbose_name = _(u'Registro')
+        verbose_name_plural = _(u'Registros')
     
     def __unicode__(self):
         return u"%s - %s" % (self.job.name, self.run_date)
